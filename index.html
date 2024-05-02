@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Hours Spent Per day on Cars in Texas</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    </style>
+</head>
+<body>
+    <div id='map'></div>
+
+    <script>
+        mapboxgl.accessToken = "pk.eyJ1IjoiY2hhcmxpZTIzNDMiLCJhIjoiY2tnaWlnOTRyMGk5djJybGYzaThqeXQzdyJ9.kRWf1VawXRygKy2w7hNT1w";
+
+        var map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/light-v10', // Map style
+            center: [-97.065, 31.167], // Initial map center
+            zoom: 7.25 // Initial zoom level
+        });
+
+        map.on('load', function () {
+            map.addSource('polygons', {
+                type: 'vector',
+                url: 'mapbox://charlie2343.9l2u883m' 
+            });
+
+            map.addLayer({
+                'id': 'polygons-layer',
+                'type': 'fill',
+                'source': 'polygons',
+                'source-layer': 'texas_time_wasted_on_cars-2q883j', 
+                'paint': {
+                    'fill-color': [
+                        'interpolate',
+                        ['linear'],
+                        ['get', 'Total Car Ownership Time'], 
+                        1, 'rgb(255,237,160)', 
+                        3.5, 'rgb(254,178,76)',
+                        6, 'rgb(240,59,32)', 
+                    ],
+                    'fill-opacity': 0.7
+                }
+            });
+
+            var popup = new mapboxgl.Popup({
+                closeButton: false,
+                closeOnClick: false
+            });
+
+            map.on('click', 'polygons-layer', function (e) {
+                var value = e.features[0].properties['Total Car Ownership Time']; 
+                
+                // Format the value to one decimal place
+                var formattedValue = parseFloat(value).toFixed(1);
+
+                // Get the coordinates of the click event
+                var coordinates = e.lngLat;
+
+                // Set the popup content and display it at the click location
+                popup.setLngLat(coordinates)
+                     .setHTML('<strong>Avg Hours spent per day on cars:</strong> ' + formattedValue)
+                     .addTo(map);
+            });
+
+            map.on('mouseenter', 'polygons-layer', function () {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+
+            map.on('mouseleave', 'polygons-layer', function () {
+                map.getCanvas().style.cursor = '';
+            });
+        });
+    </script>
+</body>
+</html>
