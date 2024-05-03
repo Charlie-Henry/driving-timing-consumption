@@ -1,2 +1,3 @@
 
-.ipynb_checkpoints/Car Ownership Time-checkpoint.ipynb
+.ipynb_checkpoints/*
+__pycache__/*
