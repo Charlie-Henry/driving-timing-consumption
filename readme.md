@@ -10,4 +10,4 @@ The full details are outlined in CityNerd's video. This video replicates it at a
 
 ## Visualization
 
-Interactive map available [here](https://charlie-henry.github.io/tx-driving-consumption/) 
+Interactive map available [here](https://charlie-henry.github.io/driving-timing-consumption/) 
