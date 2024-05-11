@@ -8,7 +8,30 @@
     <link href='https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css' rel='stylesheet' />
     <style>
         body { margin: 0; padding: 0; }
-        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }       
+    table {
+        table-layout: auto;
+        line-height: 1.25;
+        
+        border-spacing: 0px;
+        border-collapse: separate;
+    }
+    td, th {
+        padding-block: 5px;
+        border-top: 1px solid;
+    }
+    th {
+        text-align: left;
+    }
+    td {
+        text-align: right;
+        white-space: nowrap;
+    }
+    caption {
+        text-align: left;
+        padding-block: 5px;
+
+    }
     </style>
 </head>
 <body>
@@ -53,19 +76,54 @@
                 closeOnClick: false
             });
 
-            map.on('click', 'polygons-layer', function (e) {
-                var value = e.features[0].properties['Total Car Ownership Time']; 
-                
-                // Format the value to one decimal place
-                var formattedValue = parseFloat(value).toFixed(1);
+            map.on("click", "polygons-layer", function (e) {
+              var name = e.features[0].properties["NAMELSADCO"] + ", " + e.features[0].properties["STATE_NAME"];
+              var tract = e.features[0].properties["NAMELSAD"];
 
-                // Get the coordinates of the click event
-                var coordinates = e.lngLat;
+              var carOwnershipRaw = e.features[0].properties["Total Car Ownership Time"];
+              var carOwnership = parseFloat(carOwnershipRaw).toFixed(1);
 
-                // Set the popup content and display it at the click location
-                popup.setLngLat(coordinates)
-                     .setHTML('<strong>Avg Hours spent per day on cars:</strong> ' + formattedValue)
-                     .addTo(map);
+              var travelTimeRaw = e.features[0].properties["Component 1"];
+              var travelTime = parseFloat(travelTimeRaw).toFixed(1);
+              
+              var incomeRaw = e.features[0].properties["Median earnings"];
+              var income = parseFloat(incomeRaw).toFixed(2);
+
+              // Construct the table
+              var popupHTML =
+                `<table>
+                    <caption><strong>` +
+                name +
+                `</strong><br><small>` +
+                tract +
+                `</small></caption>
+                    <tbody>
+                        <tr>
+                        <th>Daily travel time</th>
+                        <td>` +
+                travelTime +
+                ` hours</td>
+                        </tr>
+                        <tr>
+                        <th>Median yearly income</th>
+                        <td>$` +
+                income +
+                `</td>
+                        </tr>
+                        <tr>
+                        <th><strong>Time spent per day on cars:</strong></th>
+                        <td>` +
+                carOwnership +
+                ` hours</td>
+                        </tr>
+                    </tbody>
+                </table>`;
+
+              // Get the coordinates of the click event
+              var coordinates = e.lngLat;
+
+              // Set the popup content and display it at the click location
+              popup.setLngLat(coordinates).setHTML(popupHTML).addTo(map);
             });
 
             map.on('mouseenter', 'polygons-layer', function () {
