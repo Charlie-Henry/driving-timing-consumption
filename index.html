@@ -133,6 +133,19 @@
             map.on('mouseleave', 'polygons-layer', function () {
                 map.getCanvas().style.cursor = '';
             });
+            
+            // Move map labels above the tileset layer
+            var layers = map.getStyle().layers;
+            var labelLayerId;
+            for (var i = 0; i < layers.length; i++) {
+                if (layers[i].type === 'symbol') {
+                    labelLayerId = layers[i].id;
+                    break;
+                }
+            }
+            if (labelLayerId) {
+                map.moveLayer('polygons-layer', labelLayerId);
+            }
         });
     </script>
 </body>
