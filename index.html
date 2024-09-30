@@ -82,12 +82,27 @@
 
               var carOwnershipRaw = e.features[0].properties["Total Car Ownership Time"];
               var carOwnership = parseFloat(carOwnershipRaw).toFixed(1);
+              if (!isNaN(carOwnership)) {
+                carOwnership = carOwnership + " hours";
+              } else {
+                carOwnership = "-";
+              }
 
               var travelTimeRaw = e.features[0].properties["Component 1"];
               var travelTime = parseFloat(travelTimeRaw).toFixed(1);
+              if (!isNaN(travelTime)) {
+                travelTime = travelTime + " hours";
+              } else {
+                travelTime = "-";
+              }
               
               var incomeRaw = e.features[0].properties["Median earnings"];
-              var income = parseFloat(incomeRaw).toFixed(2);
+              var income = parseFloat(incomeRaw).toFixed(0);
+              if (!isNaN(income)) {
+                income = "$" + income;
+              } else {
+                income = "-";
+              }
 
               // Construct the table
               var popupHTML =
@@ -102,19 +117,19 @@
                         <th>Daily travel time</th>
                         <td>` +
                 travelTime +
-                ` hours</td>
+                `</td>
                         </tr>
                         <tr>
                         <th>Median yearly income</th>
-                        <td>$` +
+                        <td>` +
                 income +
                 `</td>
                         </tr>
                         <tr>
-                        <th><strong>Time spent per day on cars:</strong></th>
+                        <th><strong>Time spent per day on cars: </strong></th>
                         <td>` +
                 carOwnership +
-                ` hours</td>
+                `</td>
                         </tr>
                     </tbody>
                 </table>`;
