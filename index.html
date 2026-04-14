@@ -1,167 +1,586 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset='utf-8' />
-    <title>Hours Spent Per day on Cars in Texas</title>
-    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-    <script src='https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js'></script>
-    <link href='https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css' rel='stylesheet' />
-    <style>
-        body { margin: 0; padding: 0; }
-        #map { position: absolute; top: 0; bottom: 0; width: 100%; }       
-    table {
-        table-layout: auto;
-        line-height: 1.25;
-        
-        border-spacing: 0px;
-        border-collapse: separate;
-    }
-    td, th {
-        padding-block: 5px;
-        border-top: 1px solid;
-    }
-    th {
-        text-align: left;
-    }
-    td {
-        text-align: right;
-        white-space: nowrap;
-    }
-    caption {
-        text-align: left;
-        padding-block: 5px;
+  <meta charset="utf-8" />
+  <title>Drive Time Consumption — Texas</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <script src="config.js"></script>
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f4f2ed;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
     }
-    </style>
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 320px;
+      flex-shrink: 0;
+      background: #fff;
+      border-right: 1px solid #e2e0d8;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      z-index: 10;
+    }
+
+    #sidebar-header {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid #e2e0d8;
+    }
+
+    #sidebar-header h1 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1a1a1a;
+      line-height: 1.3;
+    }
+
+    #sidebar-header p {
+      font-size: 12px;
+      color: #888;
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+
+    .section {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e2e0d8;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #999;
+      margin-bottom: 12px;
+    }
+
+    /* ── Legend ── */
+    #legend-bar {
+      height: 10px;
+      border-radius: 5px;
+      background: linear-gradient(to right, #fff7bc, #feb24c, #f03b20);
+      margin-bottom: 6px;
+    }
+
+    #legend-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #666;
+    }
+
+    /* ── Filter: range slider ── */
+    .filter-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .filter-row label {
+      font-size: 12px;
+      color: #555;
+      min-width: 100px;
+    }
+
+    .filter-row input[type="range"] {
+      flex: 1;
+      accent-color: #f03b20;
+    }
+
+    .filter-row .val {
+      font-size: 12px;
+      font-weight: 600;
+      color: #222;
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* ── Highlight toggle buttons ── */
+    .toggle-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .toggle-btn {
+      padding: 5px 11px;
+      font-size: 12px;
+      border-radius: 20px;
+      border: 1px solid #d0cec6;
+      background: #fff;
+      color: #444;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .toggle-btn:hover { background: #f4f2ed; }
+    .toggle-btn.active {
+      background: #1a1a1a;
+      border-color: #1a1a1a;
+      color: #fff;
+    }
+
+    /* ── Stats panel ── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat-card {
+      background: #f7f6f2;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .stat-card .stat-label {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 3px;
+    }
+
+    .stat-card .stat-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .stat-card .stat-unit {
+      font-size: 11px;
+      color: #888;
+      margin-left: 2px;
+    }
+
+    /* ── Selected tract detail ── */
+    #detail-panel {
+      display: none;
+      padding: 16px 20px;
+      border-bottom: 1px solid #e2e0d8;
+    }
+
+    #detail-panel.visible { display: block; }
+
+    #detail-panel h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 2px;
+    }
+
+    #detail-panel .tract-name {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 12px;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 6px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 13px;
+    }
+
+    .detail-row:last-child { border-bottom: none; }
+    .detail-row .dk { color: #555; }
+    .detail-row .dv { font-weight: 600; color: #1a1a1a; }
+
+    .big-time {
+      text-align: center;
+      padding: 12px 0 8px;
+    }
+
+    .big-time .num {
+      font-size: 40px;
+      font-weight: 700;
+      color: #f03b20;
+      line-height: 1;
+    }
+
+    .big-time .unit {
+      font-size: 12px;
+      color: #888;
+      margin-top: 2px;
+    }
+
+    /* ── No-selection hint ── */
+    #hint {
+      padding: 20px;
+      font-size: 12px;
+      color: #aaa;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    /* ── Map ── */
+    #map {
+      flex: 1;
+      position: relative;
+    }
+
+    /* ── Map overlay badge ── */
+    #map-badge {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid #e2e0d8;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 11px;
+      color: #555;
+      pointer-events: none;
+      backdrop-filter: blur(4px);
+      z-index: 5;
+    }
+
+    #map-badge strong { display: block; font-size: 13px; color: #1a1a1a; }
+
+    /* ── Mapbox popup override ── */
+    .mapboxgl-popup-content {
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 13px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.12);
+    }
+
+    /* ── Year note ── */
+    #footer {
+      padding: 12px 20px;
+      font-size: 11px;
+      color: #bbb;
+      margin-top: auto;
+    }
+  </style>
 </head>
 <body>
-    <div id='map'></div>
 
-    <script>
-        mapboxgl.accessToken = "pk.eyJ1IjoiY2hhcmxpZTIzNDMiLCJhIjoiY2tnaWlnOTRyMGk5djJybGYzaThqeXQzdyJ9.kRWf1VawXRygKy2w7hNT1w";
+<!-- ── SIDEBAR ── -->
+<aside id="sidebar">
+  <div id="sidebar-header">
+    <h1>Drive time consumption<br>Texas census tracts</h1>
+    <p>Hours spent per day on car ownership — travel time + annualized purchase/maintenance cost converted to labor hours at local wage.</p>
+  </div>
 
-        var map = new mapboxgl.Map({
-            container: 'map',
-            style: 'mapbox://styles/mapbox/light-v10', // Map style
-            center: [-97.065, 31.167], // Initial map center
-            zoom: 7.25 // Initial zoom level
-        });
+  <!-- Legend -->
+  <div class="section">
+    <div class="section-label">Hours per day</div>
+    <div id="legend-bar"></div>
+    <div id="legend-labels">
+      <span>≤ 1 h</span>
+      <span>3.5 h</span>
+      <span>6+ h</span>
+    </div>
+  </div>
 
-        map.on('load', function () {
-            map.addSource('polygons', {
-                type: 'vector',
-                url: 'mapbox://charlie2343.9l2u883m' 
-            });
+  <!-- Filters -->
+  <div class="section">
+    <div class="section-label">Filters</div>
 
-            map.addLayer({
-                'id': 'polygons-layer',
-                'type': 'fill',
-                'source': 'polygons',
-                'source-layer': 'texas_time_wasted_on_cars-2q883j', 
-                'paint': {
-                    'fill-color': [
-                        'interpolate',
-                        ['linear'],
-                        ['get', 'Total Car Ownership Time'], 
-                        1, 'rgb(255,237,160)', 
-                        3.5, 'rgb(254,178,76)',
-                        6, 'rgb(240,59,32)', 
-                    ],
-                    'fill-opacity': 0.7
-                }
-            });
+    <div class="filter-row">
+      <label>Max hours/day</label>
+      <input type="range" id="filter-max" min="1" max="8" step="0.5" value="8" />
+      <span class="val" id="filter-max-val">8</span>
+    </div>
 
-            var popup = new mapboxgl.Popup({
-                closeButton: false,
-                closeOnClick: false
-            });
+    <div class="filter-row">
+      <label>Min hours/day</label>
+      <input type="range" id="filter-min" min="0" max="6" step="0.5" value="0" />
+      <span class="val" id="filter-min-val">0</span>
+    </div>
 
-            map.on("click", "polygons-layer", function (e) {
-              var name = e.features[0].properties["NAMELSADCO"] + ", " + e.features[0].properties["STATE_NAME"];
-              var tract = e.features[0].properties["NAMELSAD"];
+    <div class="filter-row">
+      <label>Max travel time</label>
+      <input type="range" id="filter-travel" min="0" max="120" step="5" value="120" />
+      <span class="val" id="filter-travel-val">120 min</span>
+    </div>
 
-              var carOwnershipRaw = e.features[0].properties["Total Car Ownership Time"];
-              var carOwnership = parseFloat(carOwnershipRaw).toFixed(1);
-              if (!isNaN(carOwnership)) {
-                carOwnership = carOwnership + " hours";
-              } else {
-                carOwnership = "-";
-              }
+    <div style="margin-top: 8px;">
+      <button class="toggle-btn" id="btn-reset" style="font-size:12px; border-radius:6px; padding:6px 14px;" onclick="resetFilters()">Reset filters</button>
+    </div>
+  </div>
 
-              var travelTimeRaw = e.features[0].properties["Component 1"];
-              var travelTime = parseFloat(travelTimeRaw).toFixed(1);
-              if (!isNaN(travelTime)) {
-                travelTime = travelTime + " hours";
-              } else {
-                travelTime = "-";
-              }
-              
-              var incomeRaw = e.features[0].properties["Median earnings"];
-              var income = parseFloat(incomeRaw).toFixed(0);
-              if (!isNaN(income)) {
-                income = "$" + income;
-              } else {
-                income = "-";
-              }
+  <!-- Highlight -->
+  <div class="section">
+    <div class="section-label">Highlight</div>
+    <div class="toggle-group" id="highlight-group">
+      <button class="toggle-btn active" data-mode="all">All tracts</button>
+      <button class="toggle-btn" data-mode="high">High burden (4+ h)</button>
+      <button class="toggle-btn" data-mode="low">Low burden (≤1 h)</button>
+    </div>
+  </div>
 
-              // Construct the table
-              var popupHTML =
-                `<table>
-                    <caption><strong>` +
-                name +
-                `</strong><br><small>` +
-                tract +
-                `</small></caption>
-                    <tbody>
-                        <tr>
-                        <th>Daily travel time</th>
-                        <td>` +
-                travelTime +
-                `</td>
-                        </tr>
-                        <tr>
-                        <th>Median yearly income</th>
-                        <td>` +
-                income +
-                `</td>
-                        </tr>
-                        <tr>
-                        <th><strong>Time spent per day on cars: </strong></th>
-                        <td>` +
-                carOwnership +
-                `</td>
-                        </tr>
-                    </tbody>
-                </table>`;
+  <!-- Summary stats -->
+  <div class="section">
+    <div class="section-label">Visible tract summary</div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Tracts shown</div>
+        <div class="stat-value" id="stat-count">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg hours/day</div>
+        <div class="stat-value" id="stat-avg">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Worst tract</div>
+        <div class="stat-value" id="stat-max">—<span class="stat-unit">h</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg income</div>
+        <div class="stat-value" id="stat-income">—</div>
+      </div>
+    </div>
+  </div>
 
-              // Get the coordinates of the click event
-              var coordinates = e.lngLat;
+  <!-- Selected detail -->
+  <div id="detail-panel">
+    <div class="section-label">Selected tract</div>
+    <div class="big-time"><div class="num" id="d-total">—</div><div class="unit">hours/day on cars</div></div>
+    <h3 id="d-county"></h3>
+    <div class="tract-name" id="d-tract"></div>
+    <div class="detail-row"><span class="dk">Daily travel time</span><span class="dv" id="d-travel">—</span></div>
+    <div class="detail-row"><span class="dk">Median yearly income</span><span class="dv" id="d-income">—</span></div>
+    <div class="detail-row"><span class="dk">Time spent per day on cars:</span><span class="dv" id="d-pct">—</span></div>
+  </div>
+  <div id="hint">Click any census tract on the map to see details.</div>
 
-              // Set the popup content and display it at the click location
-              popup.setLngLat(coordinates).setHTML(popupHTML).addTo(map);
-            });
+  <div id="footer">Source: ACS 5-year estimates · Mapbox tileset · Inspired by <a href="https://youtu.be/mUJFptzkdh8" target="_blank" style="color:#555;">CityNerd — “Where Driving Consumes the Most of Your Life”</a></div>
+</aside>
 
-            map.on('mouseenter', 'polygons-layer', function () {
-                map.getCanvas().style.cursor = 'pointer';
-            });
+<!-- ── MAP ── -->
+<div id="map">
+  <div id="map-badge"><strong>Texas</strong>Drive time burden by census tract</div>
+</div>
 
-            map.on('mouseleave', 'polygons-layer', function () {
-                map.getCanvas().style.cursor = '';
-            });
-            
-            // Move map labels above the tileset layer
-            var layers = map.getStyle().layers;
-            var labelLayerId;
-            for (var i = 0; i < layers.length; i++) {
-                if (layers[i].type === 'symbol') {
-                    labelLayerId = layers[i].id;
-                    break;
-                }
-            }
-            if (labelLayerId) {
-                map.moveLayer('polygons-layer', labelLayerId);
-            }
-        });
-    </script>
+<script>
+  mapboxgl.accessToken = CONFIG.mapboxToken;
+
+  const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/light-v10',
+    center: [-97.065, 31.167],
+    zoom: 7.25
+  });
+
+  map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+  map.addControl(new mapboxgl.ScaleControl(), 'bottom-left');
+
+  // ── State ──
+  let minHours = 0, maxHours = 8, maxTravel = 120;
+  let highlightMode = 'all';
+  let selectedId = null;
+
+  // ── Color expression builder ──
+  function colorExpr(mode) {
+    const base = ['interpolate', ['linear'], ['get', 'Total Car Ownership Time'],
+      1, 'rgba(255,247,188,0.85)',
+      3.5, 'rgba(254,178,76,0.85)',
+      6, 'rgba(240,59,32,0.90)'
+    ];
+    if (mode === 'none') return 'rgba(180,176,168,0.2)';
+    if (mode === 'high') return [
+      'case', ['>=', ['get', 'Total Car Ownership Time'], 4], base, 'rgba(180,176,168,0.15)'
+    ];
+    if (mode === 'low') return [
+      'case', ['<=', ['get', 'Total Car Ownership Time'], 2], base, 'rgba(180,176,168,0.15)'
+    ];
+    return base;
+  }
+
+  function buildFilter() {
+    return ['all',
+      ['>=', ['get', 'Total Car Ownership Time'], minHours],
+      ['<=', ['get', 'Total Car Ownership Time'], maxHours],
+      ['<=', ['get', 'Component 1'], maxTravel * 60]  // assuming minutes stored
+    ];
+  }
+
+  function applyStyle() {
+    if (!map.getLayer('polygons-layer')) return;
+    map.setPaintProperty('polygons-layer', 'fill-color', colorExpr(highlightMode));
+    // filter is only visual — we keep all tracts loaded for stats
+  }
+
+  map.on('load', function () {
+    map.addSource('polygons', {
+      type: 'vector',
+      url: 'mapbox://charlie2343.9l2u883m'
+    });
+
+    map.addLayer({
+      id: 'polygons-layer',
+      type: 'fill',
+      source: 'polygons',
+      'source-layer': 'texas_time_wasted_on_cars-2q883j',
+      paint: {
+        'fill-color': colorExpr('all'),
+        'fill-opacity': 1
+      }
+    });
+
+    map.addLayer({
+      id: 'polygons-outline',
+      type: 'line',
+      source: 'polygons',
+      'source-layer': 'texas_time_wasted_on_cars-2q883j',
+      paint: {
+        'line-color': '#fff',
+        'line-width': 0.4,
+        'line-opacity': 0.5
+      }
+    });
+
+    map.addLayer({
+      id: 'polygons-selected',
+      type: 'line',
+      source: 'polygons',
+      'source-layer': 'texas_time_wasted_on_cars-2q883j',
+      paint: {
+        'line-color': '#1a1a1a',
+        'line-width': 2
+      },
+      filter: ['==', 'GEOID', '']
+    });
+
+    // Push label layers above fill
+    const layers = map.getStyle().layers;
+    for (let i = 0; i < layers.length; i++) {
+      if (layers[i].type === 'symbol') {
+        map.moveLayer('polygons-layer', layers[i].id);
+        map.moveLayer('polygons-outline', layers[i].id);
+        break;
+      }
+    }
+
+    map.on('click', 'polygons-layer', function (e) {
+      const p = e.features[0].properties;
+      const geoid = p['GEOID'] || p['TRACTCE'] || p['tract'];
+
+      const total = parseFloat(p['Total Car Ownership Time']);
+      const travel = parseFloat(p['Component 1']);
+      const income = parseFloat(p['Median earnings']);
+
+      document.getElementById('d-county').textContent = (p['NAMELSADCO'] || '') + ', ' + (p['STATE_NAME'] || 'TX');
+      document.getElementById('d-tract').textContent = p['NAMELSAD'] || '';
+      document.getElementById('d-total').textContent = isNaN(total) ? '—' : total.toFixed(1);
+      document.getElementById('d-travel').textContent = isNaN(travel) ? '—' : travel.toFixed(1) + ' hrs';
+      document.getElementById('d-income').textContent = isNaN(income) ? '—' : '$' + Math.round(income).toLocaleString();
+      document.getElementById('d-pct').textContent = isNaN(total) ? '—' : (total / 16 * 100).toFixed(1) + '%';
+
+      document.getElementById('detail-panel').classList.add('visible');
+      document.getElementById('hint').style.display = 'none';
+
+      if (geoid) {
+        map.setFilter('polygons-selected', ['==', 'GEOID', geoid]);
+      }
+    });
+
+    map.on('mouseenter', 'polygons-layer', () => map.getCanvas().style.cursor = 'pointer');
+    map.on('mouseleave', 'polygons-layer', () => map.getCanvas().style.cursor = '');
+
+    // Update stats on move (sampled from rendered features)
+    map.on('moveend', updateStats);
+    map.on('zoomend', updateStats);
+    updateStats();
+  });
+
+  function updateStats() {
+    const features = map.queryRenderedFeatures({ layers: ['polygons-layer'] });
+    if (!features || features.length === 0) {
+      document.getElementById('stat-count').textContent = '0';
+      return;
+    }
+
+    let sum = 0, count = 0, mx = 0, incSum = 0, incCount = 0;
+    const seen = new Set();
+
+    features.forEach(f => {
+      const id = f.id || f.properties['GEOID'];
+      if (seen.has(id)) return;
+      seen.add(id);
+
+      const v = parseFloat(f.properties['Total Car Ownership Time']);
+      const inc = parseFloat(f.properties['Median earnings']);
+      if (!isNaN(v)) { sum += v; count++; if (v > mx) mx = v; }
+      if (!isNaN(inc)) { incSum += inc; incCount++; }
+    });
+
+    document.getElementById('stat-count').textContent = count.toLocaleString();
+    document.getElementById('stat-avg').textContent = count ? (sum / count).toFixed(1) : '—';
+    document.getElementById('stat-max').textContent = count ? mx.toFixed(1) : '—';
+    document.getElementById('stat-income').textContent = incCount ? '$' + Math.round(incSum / incCount / 1000) + 'k' : '—';
+  }
+
+  // ── Filter sliders ──
+  document.getElementById('filter-max').addEventListener('input', function () {
+    maxHours = parseFloat(this.value);
+    document.getElementById('filter-max-val').textContent = maxHours;
+    applyFilter();
+  });
+
+  document.getElementById('filter-min').addEventListener('input', function () {
+    minHours = parseFloat(this.value);
+    document.getElementById('filter-min-val').textContent = minHours;
+    applyFilter();
+  });
+
+  document.getElementById('filter-travel').addEventListener('input', function () {
+    maxTravel = parseFloat(this.value);
+    document.getElementById('filter-travel-val').textContent = maxTravel + ' min';
+    applyFilter();
+  });
+
+  function applyFilter() {
+    if (!map.getLayer('polygons-layer')) return;
+    map.setFilter('polygons-layer', [
+      'all',
+      ['>=', ['get', 'Total Car Ownership Time'], minHours],
+      ['<=', ['get', 'Total Car Ownership Time'], maxHours]
+    ]);
+    map.setFilter('polygons-outline', [
+      'all',
+      ['>=', ['get', 'Total Car Ownership Time'], minHours],
+      ['<=', ['get', 'Total Car Ownership Time'], maxHours]
+    ]);
+    setTimeout(updateStats, 200);
+  }
+
+  function resetFilters() {
+    minHours = 0; maxHours = 8; maxTravel = 120;
+    document.getElementById('filter-max').value = 8;
+    document.getElementById('filter-min').value = 0;
+    document.getElementById('filter-travel').value = 120;
+    document.getElementById('filter-max-val').textContent = '8';
+    document.getElementById('filter-min-val').textContent = '0';
+    document.getElementById('filter-travel-val').textContent = '120 min';
+    if (map.getLayer('polygons-layer')) {
+      map.setFilter('polygons-layer', null);
+      map.setFilter('polygons-outline', null);
+    }
+    setTimeout(updateStats, 200);
+  }
+
+  // ── Highlight toggles ──
+  document.getElementById('highlight-group').addEventListener('click', function (e) {
+    const btn = e.target.closest('.toggle-btn');
+    if (!btn) return;
+    highlightMode = btn.dataset.mode;
+    document.querySelectorAll('#highlight-group .toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyStyle();
+  });
+</script>
 </body>
 </html>
